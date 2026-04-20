@@ -15,6 +15,57 @@
 <input id="prompt" placeholder="Describe what you want to create...">
 <button onclick="start()">Generate Tasks</button>
 
-<script src="main.js"></script>
+<script>
+async function start() {
+  const prompt = document.getElementById("prompt").value;
+
+  // Open the tab immediately so popup blockers don't kill it
+  const tab = window.open("", "_blank");
+  tab.document.write(`<pre style="background:#0a0a0a; color:#eee; padding:20px;">Loading...</pre>`);
+
+  let response;
+  try {
+    response = await fetch("https://text.pollinations.ai/openai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: "Return a short list of tasks needed to build a Minecraft Bedrock addon." },
+          { role: "user", content: prompt }
+        ]
+      })
+    });
+  } catch (err) {
+    tab.document.body.innerHTML = `<pre>Network error: ${err}</pre>`;
+    return;
+  }
+
+  if (!response.ok) {
+    tab.document.body.innerHTML = `<pre>Pollinations error: ${response.status} (${response.statusText})</pre>`;
+    return;
+  }
+
+  let data;
+  try {
+    data = await response.json();
+  } catch (err) {
+    tab.document.body.innerHTML = `<pre>Invalid JSON from Pollinations</pre>`;
+    return;
+  }
+
+  // Safe extraction
+  const tasks =
+    data?.choices?.[0]?.message?.content ||
+    "Pollinations returned no tasks.";
+
+  tab.document.body.innerHTML = `
+    <pre style="background:#0a0a0a; color:#eee; padding:20px;">
+${tasks}
+    </pre>
+  `;
+}
+</script>
+
 </body>
 </html>
